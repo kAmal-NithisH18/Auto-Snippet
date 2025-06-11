@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python Code Suggester</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/theme/monokai.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/theme/dracula.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/theme/material.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/theme/eclipse.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/theme/solarized.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+        .main-container {
+            display: flex;
+            padding: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        .code-container {
+            flex: 1;
+            margin-right: 20px;
+        }
+        .container {
+            width: 100%;
+        }
+        .editor-container {
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            overflow: hidden;
+            background-color: white;
+        }
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-bottom: 1px solid #ccc;
+        }
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        .theme-selector {
+            display: flex;
+            gap: 10px;
+        }
+        .theme-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: transform 0.2s;
+        }
+        .theme-icon:hover {
+            transform: scale(1.1);
+        }
+        .theme-icon.active {
+            border-color: #2196F3;
+        }
+        .dark-theme {
+            background-color: #272822;
+        }
+        .light-theme {
+            background-color: #f0f0f0;
+        }
+        .blue-theme {
+            background-color: #263238;
+        }
+        .green-theme {
+            background-color: #002b36;
+        }
+        .pink-theme {
+            background-color: #282a36;
+        }
+        .select-container {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        select {
+            padding: 5px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        .run-button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        .run-button:hover {
+            background-color: #45a049;
+        }
+        .editor {
+            height: 400px;
+            position: relative;
+        }
+        .CodeMirror-hints {
+            z-index: 1000;
+        }
+        .ghost-text {
+            position: absolute;
+            opacity: 0.5;
+            pointer-events: none;
+            white-space: pre;
+            font-family: inherit;
+            color: #888;
+        }
+        .output-container {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            overflow: hidden;
+            background-color: white;
+        }
+        .output-header {
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-bottom: 1px solid #ccc;
+            font-weight: bold;
+        }
+        .output {
+            padding: 10px;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            min-height: 100px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .error {
+            color: #d32f2f;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top: 4px solid #3498db;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .toolbar-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .divider {
+            height: 24px;
+            width: 1px;
+            background-color: #ccc;
+        }
+
+        /* Chat bot styles */
+        .chatbot-container {
+            width: 350px;
+            position: relative;
+        }
+        .chatbot {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: white;
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        .chatbot.minimized {
+            height: 50px;
+            overflow: hidden;
+        }
+        .chat-header {
+            padding: 10px;
+            background-color: #4285f4;
+            color: white;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .chat-header-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .chat-toggle {
+            cursor: pointer;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 18px;
+        }
+        .chat-messages {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .message {
+            padding: 8px 12px;
+            border-radius: 18px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+        .user-message {
+            background-color: #e3f2fd;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        .bot-message {
+            background-color: #f5f5f5;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+        .chat-input-container {
+            display: flex;
+            padding: 10px;
+            border-top: 1px solid #eee;
+        }
+        .chat-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            margin-right: 8px;
+            outline: none;
+        }
+        .chat-send {
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 8px 16px;
+            cursor: pointer;
+        }
+        .chat-send:hover {
+            background-color: #3367d6;
+        }
+        .message-time {
+            font-size: 10px;
+            color: #888;
+            margin-top: 4px;
+            text-align: right;
+        }
+        .typing-indicator {
+            display: none;
+            padding: 8px 12px;
+            background-color: #f5f5f5;
+            border-radius: 18px;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .typing-dots {
+            display: inline-block;
+        }
+        .typing-dots span {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #888;
+            margin-right: 3px;
+            animation: typingDot 1.3s linear infinite;
+        }
+        .typing-dots span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        .typing-dots span:nth-child(3) {
+            animation-delay: 0.4s;
+            margin-right: 0;
+        }
+        @keyframes typingDot {
+            0% { transform: translateY(0); }
+            28% { transform: translateY(-5px); }
+            44% { transform: translateY(0); }
+        }
+        .help-text {
+            font-size: 14px;
+            color: #666;
+            text-align: center;
+            padding: 5px;
+            margin-top: 8px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+        .code-block {
+            background-color: #f8f8f8;
+            padding: 10px;
+            border-radius: 5px;
+            border-left: 3px solid #4285f4;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            word-break: break-word;
+            margin: 5px 0;
+            overflow-x: auto;
+        }
+        .insert-code-btn {
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            margin-top: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .insert-code-btn:hover {
+            background-color: #3367d6;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="code-container">
+            <h1>Python Code Suggester</h1>
+            <div class="container">
+                <div class="editor-container">
+                    <div class="toolbar">
+                        <div class="controls">
+                            <div class="toolbar-section">
+                                <div class="select-container">
+                                    <label for="font-family">Font:</label>
+                                    <select id="font-family">
+                                        <option value="'Courier New', monospace">Courier New</option>
+                                        <option value="'Consolas', monospace">Consolas</option>
+                                        <option value="'Roboto Mono', monospace">Roboto Mono</option>
+                                        <option value="'Fira Code', monospace">Fira Code</option>
+                                        <option value="'Source Code Pro', monospace">Source Code Pro</option>
+                                    </select>
+                                </div>
+                                <div class="select-container">
+                                    <label for="font-size">Size:</label>
+                                    <select id="font-size">
+                                        <option value="12px">12px</option>
+                                        <option value="14px" selected>14px</option>
+                                        <option value="16px">16px</option>
+                                        <option value="18px">18px</option>
+                                        <option value="20px">20px</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="divider"></div>
+                            
+                            <div class="toolbar-section">
+                                <div class="theme-selector">
+                                    <div class="theme-icon light-theme" data-theme="eclipse" title="Light Theme"></div>
+                                    <div class="theme-icon dark-theme" data-theme="monokai" title="Dark Theme"></div>
+                                    <div class="theme-icon blue-theme" data-theme="material" title="Material Theme"></div>
+                                    <div class="theme-icon green-theme" data-theme="solarized" title="Solarized Theme"></div>
+                                    <div class="theme-icon pink-theme" data-theme="dracula" title="Dracula Theme"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="divider"></div>
+                            
+                            <div class="toolbar-section">
+                                <div class="select-container">
+                                    <label for="suggestion-model">Suggestion Model:</label>
+                                    <select id="suggestion-model">
+                                        <option value="ngram" selected>N-gram</option>
+                                        <option value="transformer">Transformer</option>
+                                        <option value="gru">GRU</option>
+                                        <option value="lstm">LSTM</option>
+                                        <option value="gpt">GPT-2(FineTunned)</option>
+                                        <option value="codet5">CodeT5</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="run-button" id="run-button">
+                            <i class="fas fa-play"></i> Run Code
+                        </button>
+                    </div>
+                    <div class="editor">
+                        <textarea id="code-editor">
+# Welcome to the Python Code Suggester!
+# As you type, you'll see suggestions based on your selected model.
+# Try typing some Python code below:
+
+def greet(name):
+    return f"Hello, {name}!"
+
+# Example usage
+result = greet("World")
+print(result)
+
+# Try some more code!
+for i in range(5):
+    print(f"Count: {i}")
+                        </textarea>
+                    </div>
+                </div>
+                
+                <div class="output-container">
+                    <div class="output-header">Output</div>
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Running code...</p>
+                    </div>
+                    <div class="output" id="output"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Chatbot Container -->
+        <div class="chatbot-container">
+            <div class="chatbot" id="chatbot">
+                <div class="chat-header">
+                    <div class="chat-header-title">
+                        <i class="fas fa-robot"></i>
+                        <span>Python Assistant</span>
+                    </div>
+                    <button class="chat-toggle" id="chat-toggle">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                </div>
+                <div class="chat-messages" id="chat-messages">
+                    <div class="message bot-message">
+                        Hello! I'm your Python coding assistant. Ask me any Python-related questions or for help with your code.
+                        <div class="message-time">Now</div>
+                    </div>
+                    <div class="help-text">
+                        Try asking questions like "How do I read a CSV file?" or "Help me optimize this loop"
+                    </div>
+                </div>
+                <div class="typing-indicator" id="typing-indicator">
+                    <div class="typing-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+                <div class="chat-input-container">
+                    <input type="text" class="chat-input" id="chat-input" placeholder="Ask something...">
+                    <button class="chat-send" id="chat-send">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/addon/hint/show-hint.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize CodeMirror
+            const editor = CodeMirror.fromTextArea(document.getElementById('code-editor'), {
+                mode: 'python',
+                theme: 'monokai',
+                lineNumbers: true,
+                indentUnit: 4,
+                tabSize: 4,
+                indentWithTabs: false,
+                lineWrapping: true,
+                styleActiveLine: true,
+                matchBrackets: true,
+                autoCloseBrackets: true,
+                smartIndent: true
+            });
+            
+            // Add ghost text container
+            const ghostTextContainer = document.createElement('div');
+            ghostTextContainer.className = 'ghost-text';
+            editor.getWrapperElement().appendChild(ghostTextContainer);
+            
+            // Set initial font family and size
+            editor.getWrapperElement().style.fontFamily = "'Courier New', monospace";
+            editor.getWrapperElement().style.fontSize = "14px";
+            
+            // Theme selectors
+            const themeIcons = document.querySelectorAll('.theme-icon');
+            themeIcons.forEach(icon => {
+                icon.addEventListener('click', function() {
+                    const theme = this.dataset.theme;
+                    editor.setOption('theme', theme);
+                    
+                    // Set active theme icon
+                    themeIcons.forEach(i => i.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+            
+            // Set initial active theme
+            document.querySelector('.theme-icon.dark-theme').classList.add('active');
+            
+            // Font family selector
+            document.getElementById('font-family').addEventListener('change', function() {
+                editor.getWrapperElement().style.fontFamily = this.value;
+                ghostTextContainer.style.fontFamily = this.value;
+                editor.refresh();
+            });
+            
+            // Font size selector
+            document.getElementById('font-size').addEventListener('change', function() {
+                editor.getWrapperElement().style.fontSize = this.value;
+                ghostTextContainer.style.fontSize = this.value;
+                editor.refresh();
+            });
+            
+            // Model selector
+            const suggestionModelSelect = document.getElementById('suggestion-model');
+            
+            // Current suggestion
+            let currentSuggestion = '';
+            let suggestionTimeout = null;
+            
+            // Handle code suggestions
+            editor.on('change', function(cm, change) {
+                clearTimeout(suggestionTimeout);
+                
+                // Clear ghost text
+                ghostTextContainer.textContent = '';
+                ghostTextContainer.style.display = 'none';
+                
+                // Get current cursor position
+                const cursor = editor.getCursor();
+                
+                // Don't suggest if deletion or multiple lines are changed
+                if (change.origin === '+delete' || change.text.length > 1) {
+                    return;
+                }
+                
+                suggestionTimeout = setTimeout(() => {
+                    const text = editor.getValue();
+                    const model = suggestionModelSelect.value;
+                    
+                    // Get suggestions from the server
+                    fetch('/suggest', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ 
+                            text: text,
+                            model: model 
+                        }),
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        const suggestion = data.suggestion;
+                        
+                        if (suggestion && suggestion.trim() !== '') {
+                            currentSuggestion = suggestion;
+                            
+                            // Get cursor position for ghost text
+                            const cursorCoords = editor.cursorCoords(true);
+                            
+                            // Set ghost text
+                            ghostTextContainer.textContent = suggestion;
+                            ghostTextContainer.style.display = 'block';
+                            ghostTextContainer.style.left = cursorCoords.left + 'px';
+                            ghostTextContainer.style.top = cursorCoords.top + 'px';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching suggestions:', error);
+                    });
+                }, 300);
+            });
+            
+            // Reset suggestions when model changes
+            suggestionModelSelect.addEventListener('change', function() {
+                currentSuggestion = '';
+                ghostTextContainer.textContent = '';
+                ghostTextContainer.style.display = 'none';
+                
+                // Trigger a change event to get new suggestions
+                if (editor.getValue().trim() !== '') {
+                    editor.trigger('change');
+                }
+            });
+            
+            // Accept suggestion on Tab key
+            editor.setOption('extraKeys', {
+                'Tab': function(cm) {
+                    if (currentSuggestion && currentSuggestion.trim() !== '') {
+                        cm.replaceSelection(currentSuggestion);
+                        currentSuggestion = '';
+                        ghostTextContainer.textContent = '';
+                        ghostTextContainer.style.display = 'none';
+                        return;
+                    }
+                    
+                    // Default Tab behavior
+                    if (cm.somethingSelected()) {
+                        cm.indentSelection('add');
+                    } else {
+                        cm.replaceSelection(cm.getOption('indentWithTabs') ? '\t' : 
+                            Array(cm.getOption('indentUnit') + 1).join(' '));
+                    }
+                }
+            });
+            
+            // Update ghost text position when cursor moves
+            editor.on('cursorActivity', function(cm) {
+                if (currentSuggestion && currentSuggestion.trim() !== '') {
+                    const cursorCoords = editor.cursorCoords(true);
+                    ghostTextContainer.style.left = cursorCoords.left + 'px';
+                    ghostTextContainer.style.top = cursorCoords.top + 'px';
+                }
+            });
+            
+            // Run button
+            document.getElementById('run-button').addEventListener('click', function() {
+                const code = editor.getValue();
+                const outputElement = document.getElementById('output');
+                const loadingElement = document.querySelector('.loading');
+                
+                // Show loading state
+                loadingElement.style.display = 'block';
+                outputElement.style.display = 'none';
+                
+                // Send code to server
+                fetch('/run_code', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ code: code }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Hide loading state
+                    loadingElement.style.display = 'none';
+                    outputElement.style.display = 'block';
+                    
+                    // Display output
+                    if (data.error) {
+                        outputElement.innerHTML = `<div class="error">${data.error}</div>`;
+                    } else {
+                        outputElement.innerHTML = data.output;
+                    }
+                })
+                .catch(error => {
+                    // Hide loading state
+                    loadingElement.style.display = 'none';
+                    outputElement.style.display = 'block';
+                    
+                    // Display error
+                    outputElement.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+                });
+            });
+
+            // Chatbot functionality
+            const chatToggle = document.getElementById('chat-toggle');
+            const chatbot = document.getElementById('chatbot');
+            const chatMessages = document.getElementById('chat-messages');
+            const chatInput = document.getElementById('chat-input');
+            const chatSend = document.getElementById('chat-send');
+            const typingIndicator = document.getElementById('typing-indicator');
+
+            // Toggle chatbot minimize/maximize
+            chatToggle.addEventListener('click', function() {
+                chatbot.classList.toggle('minimized');
+                
+                // Update the button icon
+                if (chatbot.classList.contains('minimized')) {
+                    chatToggle.innerHTML = '<i class="fas fa-expand-alt"></i>';
+                } else {
+                    chatToggle.innerHTML = '<i class="fas fa-minus"></i>';
+                    // Scroll to bottom when maximized
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
+            });
+
+            // Function to add a message to the chat
+            function addMessage(text, isUser = false) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
+                
+                // Check if message contains code
+                if (!isUser && text.includes('```')) {
+                    // Split by code blocks
+                    const parts = text.split(/```([\s\S]*?)```/);
+                    
+                    for (let i = 0; i < parts.length; i++) {
+                        if (i % 2 === 0) {
+                            // Regular text
+                            if (parts[i].trim()) {
+                                messageDiv.appendChild(document.createTextNode(parts[i]));
+                            }
+                        } else {
+                            // Code block
+                            const codeBlock = document.createElement('div');
+                            codeBlock.className = 'code-block';
+                            codeBlock.textContent = parts[i].trim();
+                            
+                            // Add insert button
+                            const insertBtn = document.createElement('button');
+                            insertBtn.className = 'insert-code-btn';
+                            insertBtn.textContent = 'Insert to Editor';
+                            insertBtn.onclick = function() {
+                                editor.setValue(parts[i].trim());
+                            };
+                            
+                            codeBlock.appendChild(insertBtn);
+                            messageDiv.appendChild(codeBlock);
+                        }
+                    }
+                } else {
+                    messageDiv.textContent = text;
+                }
+                
+                // Add timestamp
+                const timeDiv = document.createElement('div');
+                timeDiv.className = 'message-time';
+                timeDiv.textContent = 'Now';
+                messageDiv.appendChild(timeDiv);
+                
+                chatMessages.appendChild(messageDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+
+            // Function to show typing indicator
+            function showTypingIndicator() {
+                typingIndicator.style.display = 'block';
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+
+            // Function to hide typing indicator
+            function hideTypingIndicator() {
+                typingIndicator.style.display = 'none';
+            }
+
+            // Function to send message to backend
+            function sendMessage() {
+                const message = chatInput.value.trim();
+                if (!message) return;
+                
+                // Add user message to chat
+                addMessage(message, true);
+                chatInput.value = '';
+                
+                // Show typing indicator
+                showTypingIndicator();
+                
+                // Send message to server
+                fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        message: message,
+                        code: editor.getValue() // Also send current code
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Hide typing indicator
+                    hideTypingIndicator();
+                    
+                    // Add bot response to chat
+                    addMessage(data.response);
+                })
+                .catch(error => {
+                    // Hide typing indicator
+                    hideTypingIndicator();
+                    
+                    // Show error message
+                    addMessage("Sorry, there was an error processing your request. Please try again later.");
+                    console.error('Error sending message:', error);
+                });
+            }
+
+            // Send message on button click
+            chatSend.addEventListener('click', sendMessage);
+            
+            // Send message on Enter key
+            chatInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
