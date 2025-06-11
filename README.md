@@ -243,10 +243,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - **Hugging Face** for transformers library
 - **PyTorch** team for the deep learning framework
 
-## 📞 Support
-
-For questions, issues, or contributions:
-- Open an issue on GitHub
-- Contact the development team
 
 ---
