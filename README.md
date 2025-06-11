@@ -31,7 +31,8 @@ An intelligent Python code generation and completion tool powered by multiple AI
 - Python 3.8 or higher
 - CUDA-compatible GPU (optional, for faster inference)
 - 8GB+ RAM recommended
-
+## For Dataset
+- run Load_Dataset.py
 ### Setup
 
 1. **Clone the repository**
