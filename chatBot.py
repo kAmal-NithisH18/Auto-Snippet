@@ -1,6 +1,6 @@
 from groq import Groq
 
-GROQ_API_KEY = "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"
+GROQ_API_KEY = ""
 client = Groq(api_key=GROQ_API_KEY)
 
 def chatResponse(query):
