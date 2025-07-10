@@ -232,10 +232,6 @@ Auto-Code-Python/
 python app.py --debug
 ```
 
-## 📝 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
 ## 🙏 Acknowledgments
 
 - **Salesforce Research** for CodeT5
